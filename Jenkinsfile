@@ -7,9 +7,6 @@ pipeline {
     }
 
     environment {
-        DOCKER_HOST = 'tcp://docker:2376'
-        DOCKER_CERT_PATH = '/certs/client'
-        DOCKER_TLS_VERIFY = '1'
         DOCKER_IMAGE = 'madakaanmisha/aws-elastic-beanstalk-express-js-sample'
     }
 
@@ -39,26 +36,41 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image...'
-                sh 'docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .'
-                sh 'docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest'
+
+                withEnv([
+                    'DOCKER_HOST=tcp://docker:2376',
+                    'DOCKER_CERT_PATH=/certs/client',
+                    'DOCKER_TLS_VERIFY=1'
+                ]) {
+                    sh 'docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .'
+                    sh 'docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest'
+                }
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'madakaanmisha',
-                        usernameVariable: 'DOCKER_USERNAME',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )
+                echo 'Pushing Docker image to Docker Hub...'
+
+                withEnv([
+                    'DOCKER_HOST=tcp://docker:2376',
+                    'DOCKER_CERT_PATH=/certs/client',
+                    'DOCKER_TLS_VERIFY=1'
                 ]) {
-                    sh '''
-                        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
-                        docker push ${DOCKER_IMAGE}:latest
-                        docker logout
-                    '''
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'madakaanmisha',
+                            usernameVariable: 'DOCKER_USERNAME',
+                            passwordVariable: 'DOCKER_PASSWORD'
+                        )
+                    ]) {
+                        sh '''
+                            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                            docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                            docker push ${DOCKER_IMAGE}:latest
+                            docker logout
+                        '''
+                    }
                 }
             }
         }
