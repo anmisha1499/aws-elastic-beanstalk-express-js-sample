@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'node:16'
+            image 'madakaanmisha/node16-docker-agent:latest' 
             args '-v isec6000-assessment2-jenkins_jenkins_docker_certs:/certs/client:ro'
         }
     }
@@ -15,16 +15,26 @@ pipeline {
 
     stages {
 
-        stage('Install Docker CLI') {
-            steps {
-                echo 'Installing Docker CLI in the Node 16 build agent...'
-                sh '''
-                    apt-get update
-                    apt-get install -y docker.io
-                    docker --version
-                '''
-            }
+        stage('Install Dependencies') {
+        steps {
+            echo 'Installing Node.js dependencies...'
+            sh 'npm ci'
         }
+    }
+
+    stage('Security Scan') {
+        steps {
+            echo 'Running dependency vulnerability scan...'
+            sh 'npm audit --audit-level=high'
+        }
+    }
+
+    stage('Run Tests') {
+        steps {
+            echo 'Running application tests...'
+            sh 'npm test'
+        }
+    }
 
         stage('Install Dependencies') {
             steps {

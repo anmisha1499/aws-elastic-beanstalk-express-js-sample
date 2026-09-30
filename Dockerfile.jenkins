@@ -1,0 +1,7 @@
+FROM node:16
+
+# Copy the Docker CLI from the official Docker CLI image.
+COPY --from=docker:cli /usr/local/bin/docker /usr/local/bin/docker
+
+# Run the Jenkins build agent as the non-root Node user.
+USER node
