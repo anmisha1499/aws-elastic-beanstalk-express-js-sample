@@ -1,7 +1,8 @@
 FROM node:16
 
-# Copy the Docker CLI from the official Docker CLI image.
+# Add Docker CLI so Jenkins can communicate with Docker.
 COPY --from=docker:cli /usr/local/bin/docker /usr/local/bin/docker
 
-# Run the Jenkins build agent as the non-root Node user.
-USER node
+# Jenkins Docker Pipeline will run the container with
+# the Jenkins user ID when required.
+# Do not set USER node here.
