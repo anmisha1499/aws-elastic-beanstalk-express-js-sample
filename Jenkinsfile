@@ -37,14 +37,19 @@ pipeline {
             steps {
                 echo 'Building Docker image...'
 
-                withEnv([
-                    'DOCKER_HOST=tcp://docker:2376',
-                    'DOCKER_CERT_PATH=/certs/client',
-                    'DOCKER_TLS_VERIFY=1'
-                ]) {
-                    sh 'docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .'
-                    sh 'docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest'
-                }
+                sh '''
+                    DOCKER_HOST=tcp://docker:2376 \
+                    DOCKER_CERT_PATH=/certs/client \
+                    DOCKER_TLS_VERIFY=1 \
+                    docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
+                '''
+
+                sh '''
+                    DOCKER_HOST=tcp://docker:2376 \
+                    DOCKER_CERT_PATH=/certs/client \
+                    DOCKER_TLS_VERIFY=1 \
+                    docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
+                '''
             }
         }
 
@@ -52,25 +57,35 @@ pipeline {
             steps {
                 echo 'Pushing Docker image to Docker Hub...'
 
-                withEnv([
-                    'DOCKER_HOST=tcp://docker:2376',
-                    'DOCKER_CERT_PATH=/certs/client',
-                    'DOCKER_TLS_VERIFY=1'
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'madakaanmisha',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
                 ]) {
-                    withCredentials([
-                        usernamePassword(
-                            credentialsId: 'madakaanmisha',
-                            usernameVariable: 'DOCKER_USERNAME',
-                            passwordVariable: 'DOCKER_PASSWORD'
-                        )
-                    ]) {
-                        sh '''
-                            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-                            docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
-                            docker push ${DOCKER_IMAGE}:latest
-                            docker logout
-                        '''
-                    }
+                    sh '''
+                        echo "$DOCKER_PASSWORD" | \
+                        DOCKER_HOST=tcp://docker:2376 \
+                        DOCKER_CERT_PATH=/certs/client \
+                        DOCKER_TLS_VERIFY=1 \
+                        docker login -u "$DOCKER_USERNAME" --password-stdin
+
+                        DOCKER_HOST=tcp://docker:2376 \
+                        DOCKER_CERT_PATH=/certs/client \
+                        DOCKER_TLS_VERIFY=1 \
+                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+
+                        DOCKER_HOST=tcp://docker:2376 \
+                        DOCKER_CERT_PATH=/certs/client \
+                        DOCKER_TLS_VERIFY=1 \
+                        docker push ${DOCKER_IMAGE}:latest
+
+                        DOCKER_HOST=tcp://docker:2376 \
+                        DOCKER_CERT_PATH=/certs/client \
+                        DOCKER_TLS_VERIFY=1 \
+                        docker logout
+                    '''
                 }
             }
         }
