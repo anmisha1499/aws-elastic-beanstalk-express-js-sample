@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
             image 'madakaanmisha/node16-docker-agent:latest'
-            args '-v isec6000-assessment2-jenkins_jenkins_docker_certs:/certs/client:ro'
+            args '--network=isec6000-assessment2-jenkins_jenkins_network -v isec6000-assessment2-jenkins_jenkins_docker_certs:/certs/client:ro'
         }
     }
 
